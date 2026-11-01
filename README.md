@@ -74,29 +74,29 @@ sudo ./install.sh
 **方式二：下载 Release 包**
 
 ```bash
-curl -L -o wcb.tar.gz https://github.com/mhggv/world-channel-bridge/releases/latest/download/world-channel-bridge-1.1.0.tar.gz
+curl -L -o wcb.tar.gz https://github.com/mhggv/world-channel-bridge/releases/latest/download/world-channel-bridge-1.2.0.tar.gz
 tar xzf wcb.tar.gz && cd world-channel-bridge
 sudo ./install.sh
 ```
 
 **方式三：交给 DSH 自己的插件机制**
 
-包里自带 `cordis.patch.yml`，并在 `package.json` 的 `dsh.bundle.patch` 中声明，所以被 DSH 当作插件加载时会自动插入配置行，不需要手工改 YAML：
-
 ```bash
-dsh plugin add /path/to/world-channel-bridge   # 或已发布的包名
+dsh plugin --profile web add /path/to/world-channel-bridge
 ```
 
-若你同时跑过 `install.sh`，也不会重复插入——脚本和补丁都按 id 幂等。
+`install.sh` 做的事和这条命令一致：把插件登记成 profile 的**正式依赖**（`dependencies`）并加入 `dsh.profile.bundles`。包里自带 `cordis.patch.yml` 且在 `package.json` 的 `dsh.bundle.patch` 中声明，DSH 会按 bundle 的方式把它挂进 loader，不用手工改任何 YAML。
 
 脚本会自动完成：
 
 1. 探测 `DSH_HOME`、profile 目录、node、systemd 服务名和运行用户（都可用参数覆盖）；
 2. 把插件放到 `$DSH_HOME/plugins/world-channel-bridge`；
 3. 在 profile 的 `node_modules` 建软链（**绝对路径**，不会因目录层级算错）；
-4. 在 `cordis.patch.yml` 追加 `- insert:` 条目（幂等，自动备份原文件）；
-5. 校验 YAML 仍可解析、模块可被宿主导入；
-6. 重启服务并回读日志确认插件真的加载了。
+4. 在 profile 的 `package.json` 登记 `dependencies` + `dsh.profile.bundles`（幂等，自动备份原文件）——
+   **这一步决定它会不会出现在 Web 的「插件管理 → 已安装」里**；
+5. 自动清理旧版（≤1.1.0）写在 `cordis.patch.yml` 里的手动条目，避免和 bundle patch 重复挂载；
+6. 校验 YAML 可解析、模块可被宿主导入；
+7. 重启服务并回读日志确认插件真的加载了。
 
 常用参数：
 
@@ -106,6 +106,22 @@ dsh plugin add /path/to/world-channel-bridge   # 或已发布的包名
 ./install.sh --link            # 不复制文件，直接软链到当前目录（便于反复调试）
 ./install.sh --dry-run         # 只打印将要做什么
 ```
+
+### 装完在 Web 里哪里看得到它
+
+DSH Web 里有两个容易混淆的地方，判定依据完全不同：
+
+| 位置 | 读的是什么 | 你会在里面看到 |
+|---|---|---|
+| 设置 → **插件清单**（Plugin Inventory） | 运行时 loader 的 entry 投影 | 任何已挂载的 entry，包括手工插入的 |
+| 设置 → **插件管理 → 已安装**（Plugin Manager） | profile `package.json` 的 `dependencies` + `dsh.profile.bundles` | 只有正式登记的包 |
+
+所以：
+
+- **只在 `cordis.patch.yml` 插一条、再往 `node_modules` 塞个软链** —— 插件能跑、日志正常、记忆确实在写，但「已安装」列表里**永远是空的**。这是 1.1.0 及更早版本的做法。
+- **登记进 `package.json`**（`install.sh` 或 `dsh plugin add` 都会做）—— 列表里出现 `world-channel-bridge`，显示版本、可停用/启用。
+
+`./doctor.sh` 的第 4 项会直接告诉你当前是哪一种状态；若显示"旧式安装"，重跑一次 `install.sh` 即可迁移（幂等，会自动清掉旧条目）。
 
 ### 非 systemd 环境（Windows / macOS / 前台启动）
 
@@ -158,7 +174,7 @@ journalctl -u dsh-web -n 200 | grep world-channel-bridge
 正常长这样：
 
 ```
-[world-channel-bridge] v1.0.0 已就绪：监控 1 个世界房间、3 个渠道会话
+[world-channel-bridge] v1.2.0 已就绪：监控 1 个世界房间、3 个渠道会话
 [world-channel-bridge] 已登记会话 session-xxxx →「房间标题」，该渠道的对话将进入记忆归档
 ```
 
@@ -241,7 +257,7 @@ world-channel-bridge/
 |---|---|
 | `@deepseek-ai/dsh` 0.2.1-rc.5 + `dsh-world` 0.6.6 + `@tencent-connect/dsh-qqbot` 0.5.5 | 官方 QQ 会话自动登记、归档实时写入、重启回扫补齐 |
 
-版本 1.1.0
+版本 1.2.0
 
 ---
 

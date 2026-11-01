@@ -1,5 +1,5 @@
 /**
- * world-channel-bridge v1.0.0
+ * world-channel-bridge v1.2.0
  * ────────────────────────────────────────────────────────────────────────────
  * 让「世界控制台」之外的渠道（官方 QQ 机器人、微信、未来的任何接入端）
  * 在发起对话时，自动进入她的记忆体系。
@@ -49,7 +49,7 @@
 
 import path from "node:path"
 import os from "node:os"
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { readdir, realpath } from "node:fs/promises"
 
 export const name = "world-channel-bridge"
@@ -57,7 +57,14 @@ export const name = "world-channel-bridge"
 // sessionPersistence 用于读取全部会话的 header（拿到 cwd）；这是插件唯一强依赖。
 export const inject = ["sessionPersistence"]
 
-const VERSION = "1.0.0"
+// 版本号以 package.json 为唯一真源，避免代码里的常量与包版本漂移。
+const VERSION = (() => {
+  try {
+    return JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version ?? "0.0.0"
+  } catch {
+    return "0.0.0"
+  }
+})()
 
 const DEFAULTS = {
   intervalMs: 30_000,

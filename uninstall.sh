@@ -87,21 +87,13 @@ for id in "$PLUGIN_ID" "$LEGACY_ID"; do
   fi
 done
 
-step "清理 package.json 里的依赖登记"
+step "清理 package.json 里的依赖与 bundle 登记"
 PKG="$PROFILE/package.json"
 if [ -f "$PKG" ]; then
-  "$NODE_BIN" -e "
-    const fs = require('fs');
-    const p = '$PKG';
-    const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
-    const deps = pkg.dependencies || {};
-    let changed = false;
-    for (const id of ['$PLUGIN_ID', '$LEGACY_ID']) {
-      if (deps[id]) { delete deps[id]; changed = true; }
-    }
-    if (changed) { pkg.dependencies = deps; fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + '\n'); }
-    console.log(changed ? '  已移除依赖登记' : '  无需清理');
-  " 2>/dev/null || warn "package.json 清理跳过"
+  for id in "$PLUGIN_ID" "$LEGACY_ID"; do
+    "$NODE_BIN" "$SRC_DIR/tools/manifest-edit.mjs" remove "$PKG" "$id" 2>/dev/null || true
+  done
+  ok "已清理 dependencies 与 dsh.profile.bundles"
 fi
 
 if [ "$KEEP_FILES" = "0" ]; then

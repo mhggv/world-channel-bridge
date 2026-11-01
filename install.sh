@@ -186,32 +186,60 @@ if [ "$DRY_RUN" = "0" ]; then
   ok "模块可被宿主导入"
 fi
 
-# ── 4. 写入 profile 配置 ────────────────────────────────────────────────────
-step "登记到 $PATCH_FILE"
+# ── 4. 登记到 profile/package.json ─────────────────────────────────────────
+# DSH 的「插件管理 → 已安装」只读 profile/package.json 的两处登记：
+#   dependencies         → 算「已安装」
+#   dsh.profile.bundles  → 算「已启用」
+# 只塞 node_modules 软链 + loader 条目的话，插件能跑但列表里永远看不到。
+step "登记为 profile 插件"
+MANIFEST="$PROFILE/package.json"
+[ -f "$MANIFEST" ] || die "缺少 $MANIFEST（这个 profile 不完整）"
+LINK_SPEC="link:$TARGET_DIR"
+
 if [ "$DRY_RUN" = "1" ]; then
-  run "'$NODE_BIN' '$SRC_DIR/tools/patch-edit.mjs' add '$PATCH_FILE' '$PLUGIN_ID' '$PLUGIN_ID'"
+  run "'$NODE_BIN' '$SRC_DIR/tools/manifest-edit.mjs' add '$MANIFEST' '$PLUGIN_ID' '$LINK_SPEC'"
 else
-  "$NODE_BIN" "$SRC_DIR/tools/patch-edit.mjs" add "$PATCH_FILE" "$PLUGIN_ID" "$PLUGIN_ID"
+  cp -a "$MANIFEST" "$MANIFEST.bak-$(date +%Y%m%d-%H%M%S)"
+  "$NODE_BIN" "$SRC_DIR/tools/manifest-edit.mjs" add "$MANIFEST" "$PLUGIN_ID" "$LINK_SPEC" \
+    || die "写入 $MANIFEST 失败（原文件已备份为 $MANIFEST.bak-*）"
+  ok "$PLUGIN_ID 已登记（dependencies + dsh.profile.bundles）"
 fi
 
-# 校验 YAML 是否还能解析（用 profile 自带的 js-yaml；文件里的 !!js 自定义标签会被兼容处理）
-if [ "$DRY_RUN" = "0" ]; then
+# 迁移：清掉旧版本写在 cordis.patch.yml 里的手动条目。
+# 现在由插件自带的 cordis.patch.yml（dsh.bundle.patch）提供同一条 entry，
+# 两处都留会让插件被挂载两次。
+if [ "$DRY_RUN" = "1" ]; then
+  run "'$NODE_BIN' '$SRC_DIR/tools/patch-edit.mjs' remove '$PATCH_FILE' '$PLUGIN_ID'"
+else
+  set +e
+  "$NODE_BIN" "$SRC_DIR/tools/patch-edit.mjs" has "$PATCH_FILE" "$PLUGIN_ID" >/dev/null 2>&1
+  LEGACY_RC=$?
+  set -e
+  if [ "$LEGACY_RC" -eq 0 ]; then
+    cp -a "$PATCH_FILE" "$PATCH_FILE.bak-$(date +%Y%m%d-%H%M%S)"
+    "$NODE_BIN" "$SRC_DIR/tools/patch-edit.mjs" remove "$PATCH_FILE" "$PLUGIN_ID"
+    ok "已移除 cordis.patch.yml 中的旧条目（改由 bundle patch 提供，避免重复加载）"
+  fi
+  # 校验 profile 的 patch 文件仍然可解析（文件里可能含 !!js 自定义标签）。
+  # 注意：条目现在由插件自带的 cordis.patch.yml 提供，profile 里没有它是正常的。
   set +e
   YAML_OUT="$("$NODE_BIN" "$SRC_DIR/tools/yaml-check.mjs" "$PATCH_FILE" "$PROFILE" "$PLUGIN_ID" 2>&1)"
   YAML_RC=$?
   set -e
   if [ "$YAML_RC" -eq 2 ]; then
     warn "profile 内没有 js-yaml，跳过 YAML 解析校验"
-  elif [ "$YAML_RC" -ne 0 ]; then
-    printf '%s\n' "$YAML_OUT"
-    die "配置写入后校验失败（原文件已备份为 $PATCH_FILE.bak-*，可手动还原）"
+  elif [ "$YAML_RC" -eq 0 ]; then
+    ok "cordis.patch.yml 可解析"
+  elif printf '%s' "$YAML_OUT" | grep -q "没找到条目"; then
+    ok "cordis.patch.yml 可解析（条目由插件自带的 bundle patch 提供）"
   else
     printf '%s\n' "$YAML_OUT"
-    ok "配置有效"
+    warn "cordis.patch.yml 解析校验未通过，请人工确认"
   fi
 fi
 
 if [ "$RUN_USER" != "" ] && [ "$ROOT" = "0" ] && [ "$(id -un)" != "$RUN_USER" ]; then
+  run "chown '$RUN_USER:$RUN_GROUP' '$MANIFEST' 2>/dev/null || true"
   run "chown '$RUN_USER:$RUN_GROUP' '$PATCH_FILE' 2>/dev/null || true"
 fi
 

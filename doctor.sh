@@ -107,28 +107,43 @@ else
   warn "跳过（缺少 node 或插件文件）"
 fi
 
-# ── 4. 配置 ─────────────────────────────────────────────────────────────────
-section "4. profile 配置"
+# ── 4. 登记 ─────────────────────────────────────────────────────────────────
+section "4. profile 登记"
+MANIFEST="$PROFILE/package.json"
 PATCH_FILE="$PROFILE/cordis.patch.yml"
-if [ -f "$PATCH_FILE" ]; then
-  if grep -qE "^\s*-\s*id:\s*['\"]?$PLUGIN_ID['\"]?\s*$" "$PATCH_FILE"; then
-    LINE=$(grep -nE "^\s*-\s*id:\s*['\"]?$PLUGIN_ID['\"]?\s*$" "$PATCH_FILE" | cut -d: -f1)
-    pass "条目已登记（第 $LINE 行）"
-  else
-    fail "配置里没有 $PLUGIN_ID 条目"
-  fi
-  if [ -n "$NODE_BIN" ] && [ -d "$PROFILE/node_modules/js-yaml" ]; then
-    RESULT="$("$NODE_BIN" "$SRC_DIR/tools/yaml-check.mjs" "$PATCH_FILE" "$PROFILE" "$PLUGIN_ID" 2>&1)"
-    if [ $? -eq 0 ]; then
-      pass "YAML 可解析：$(printf '%s' "$RESULT" | tr -d '\n' | sed 's/^ *//')"
+MODE="absent"
+if [ -f "$MANIFEST" ] && [ -n "$NODE_BIN" ] && [ -f "$SRC_DIR/tools/manifest-edit.mjs" ]; then
+  MODE="$("$NODE_BIN" "$SRC_DIR/tools/manifest-edit.mjs" has "$MANIFEST" "$PLUGIN_ID" 2>/dev/null || echo absent)"
+fi
+case "$MODE" in
+  registered*)
+    pass "package.json 已登记（$(printf '%s' "$MODE" | cut -d' ' -f2-)）—— 会出现在「插件管理 → 已安装」"
+    ;;
+  dependency-only*)
+    warn "只在 dependencies 里、未加入 dsh.profile.bundles：UI 会显示成「未启用」"
+    ;;
+  bundle-only*)
+    warn "只在 dsh.profile.bundles 里、缺 dependencies 登记：重跑 install.sh 补齐"
+    ;;
+  *)
+    if [ -f "$PATCH_FILE" ] && grep -qE "^\s*-\s*id:\s*['\"]?$PLUGIN_ID['\"]?\s*$" "$PATCH_FILE"; then
+      warn "旧式安装：只在 cordis.patch.yml 里插了条目 —— 能跑，但「插件管理 → 已安装」不会显示它"
+      warn "  → 重跑 install.sh 即会迁移到 package.json 登记（幂等）"
     else
-      fail "YAML 解析失败：$RESULT"
+      fail "profile 里找不到 $PLUGIN_ID 的任何登记"
     fi
+    ;;
+esac
+if [ -f "$PATCH_FILE" ] && [ -n "$NODE_BIN" ] && [ -d "$PROFILE/node_modules/js-yaml" ]; then
+  RESULT="$("$NODE_BIN" "$SRC_DIR/tools/yaml-check.mjs" "$PATCH_FILE" "$PROFILE" "$PLUGIN_ID" 2>&1)"
+  RC=$?
+  if [ "$RC" -eq 0 ]; then
+    pass "cordis.patch.yml 可解析：$(printf '%s' "$RESULT" | tr -d '\n' | sed 's/^ *//')"
+  elif printf '%s' "$RESULT" | grep -q "没找到条目"; then
+    pass "cordis.patch.yml 可解析（条目由插件自带的 bundle patch 提供）"
   else
-    warn "profile 内无 js-yaml，跳过 YAML 解析校验"
+    warn "cordis.patch.yml 解析异常：$RESULT"
   fi
-else
-  fail "找不到 $PATCH_FILE"
 fi
 
 # ── 5. 服务与运行日志 ───────────────────────────────────────────────────────
