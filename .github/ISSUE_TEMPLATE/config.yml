@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用文档 / README
+    url: https://github.com/mhggv/world-channel-bridge#readme
+    about: 安装、配置、排障（含两个高频坑）都在这里
+  - name: 最新版本下载
+    url: https://github.com/mhggv/world-channel-bridge/releases/latest
+    about: 建议先用最新版复现，老版本的问题可能已修

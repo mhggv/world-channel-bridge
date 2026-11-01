@@ -1,0 +1,78 @@
+name: 问题反馈 / Bug report
+description: 插件没生效、会话没被登记、记忆没进归档等异常
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。**请先跑一次 `./doctor.sh`**，它能自动定位大部分问题（文件、软链、配置、服务、归档对账）。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象
+      description: 你期望发生什么，实际发生了什么？
+      placeholder: 例如：QQ 上聊了 20 分钟，网页端问人格，它完全不记得。
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: doctor.sh 输出
+      description: 在插件目录执行 `./doctor.sh`，把完整输出粘在这里。
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: plugin-log
+    attributes:
+      label: 插件日志
+      description: 采集最近含插件前缀的日志。
+      value: |
+        ```bash
+        journalctl -u <你的服务名> --since "-10min" | grep world-channel-bridge
+        ```
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH / dsh-world 版本
+      description: 例如 `dsh-world@0.6.6`。可用 `ls <profile>/node_modules/dsh-world/package.json` 查。
+    validations:
+      required: true
+
+  - type: input
+    id: node-os
+    attributes:
+      label: Node 版本与操作系统
+      placeholder: 例如 Node v22.13.0 / Debian 13
+    validations:
+      required: true
+
+  - type: dropdown
+    id: channel
+    attributes:
+      label: 出问题的渠道
+      multiple: true
+      options:
+        - 官方 QQ 机器人（@tencent-connect/dsh-qqbot）
+        - OneBot / SnowLuma
+        - 微信
+        - 其他
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 自查确认
+      options:
+        - label: 配置条目写的是 `- insert:` 形式（顶层 `- id:` 会被静默跳过）
+          required: true
+        - label: 已阅读 README 的「排障」章节
+          required: false

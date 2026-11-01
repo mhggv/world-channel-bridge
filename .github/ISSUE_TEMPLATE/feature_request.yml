@@ -1,0 +1,36 @@
+name: 功能建议 / Feature request
+description: 希望插件支持新的渠道、新的世界布局或新的配置项
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到的实际场景
+      description: 描述具体需求，而不是直接给方案——这样更容易找到通用解法。
+      placeholder: 例如：我有两个世界（default 和 test），只想让 default 的会话进记忆。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你设想的做法（可选）
+      render: markdown
+    validations:
+      required: false
+
+  - type: input
+    id: channel
+    attributes:
+      label: 涉及的新渠道 / 接入端（如适用）
+      placeholder: 例如 微信 / Telegram / 自建 WebSocket 网关
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: 参与意愿
+      options:
+        - label: 我可以帮忙测试
+        - label: 我可以提 PR
