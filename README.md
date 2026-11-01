@@ -74,10 +74,20 @@ sudo ./install.sh
 **方式二：下载 Release 包**
 
 ```bash
-curl -L -o wcb.tar.gz https://github.com/mhggv/world-channel-bridge/releases/latest/download/world-channel-bridge-1.0.0.tar.gz
+curl -L -o wcb.tar.gz https://github.com/mhggv/world-channel-bridge/releases/latest/download/world-channel-bridge-1.1.0.tar.gz
 tar xzf wcb.tar.gz && cd world-channel-bridge
 sudo ./install.sh
 ```
+
+**方式三：交给 DSH 自己的插件机制**
+
+包里自带 `cordis.patch.yml`，并在 `package.json` 的 `dsh.bundle.patch` 中声明，所以被 DSH 当作插件加载时会自动插入配置行，不需要手工改 YAML：
+
+```bash
+dsh plugin add /path/to/world-channel-bridge   # 或已发布的包名
+```
+
+若你同时跑过 `install.sh`，也不会重复插入——脚本和补丁都按 id 幂等。
 
 脚本会自动完成：
 
@@ -200,7 +210,8 @@ sudo ./uninstall.sh --keep-files # 只摘配置，保留文件
 ```
 world-channel-bridge/
 ├── index.js                     # 插件本体（唯一的运行时文件，零依赖）
-├── package.json
+├── cordis.patch.yml             # DSH 清单：声明本插件要插入的配置行（dsh.bundle.patch 指向它）
+├── package.json                 # 含 dsh.bundle / dsh.compatibility 字段
 ├── install.sh                   # 一键安装（自动探测 + 幂等）
 ├── uninstall.sh                 # 一键卸载
 ├── doctor.sh                    # 体检
@@ -209,6 +220,7 @@ world-channel-bridge/
 │   ├── yaml-check.mjs           # 校验配置可解析（兼容宿主自定义的 !!js 标签）
 │   └── self-test.mjs            # 无宿主自测：node tools/self-test.mjs
 ├── .github/workflows/ci.yml     # CI：语法 + 自测 + 脚本检查（Node 20/22）
+├── .github/ISSUE_TEMPLATE/      # Issue 模板（bug 反馈强制附 doctor.sh 输出）
 ├── LICENSE                      # MIT
 └── README.md
 ```
@@ -225,7 +237,11 @@ world-channel-bridge/
 
 任一 API 缺失时插件只告警、不崩溃，服务照常启动。
 
-版本 1.0.0
+| 实测组合 | 结果 |
+|---|---|
+| `@deepseek-ai/dsh` 0.2.1-rc.5 + `dsh-world` 0.6.6 + `@tencent-connect/dsh-qqbot` 0.5.5 | 官方 QQ 会话自动登记、归档实时写入、重启回扫补齐 |
+
+版本 1.1.0
 
 ---
 

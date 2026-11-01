@@ -1,6 +1,6 @@
 {
   "name": "world-channel-bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "把官方 QQ 等外部渠道的会话登记进 DSH 世界房间工作区，使其对话进入 dsh-world 的记忆归档。零依赖、零硬编码，可跨机器复用。",
   "type": "module",
   "main": "./index.js",
@@ -10,6 +10,7 @@
   },
   "keywords": [
     "dsh",
+    "dsh-plugin",
     "dsh-world",
     "cordis",
     "cordis-plugin",
@@ -30,8 +31,20 @@
   "engines": {
     "node": ">=20"
   },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "note": "在 @deepseek-ai/dsh 0.2.1-rc.5 + dsh-world 0.6.6 上实测通过：官方 QQ 渠道（@tencent-connect/dsh-qqbot 0.5.5）的会话自动登记、归档实时写入、服务重启后存量回扫补齐。无客户端 UI 依赖，纯服务端插件。",
+      "dshReleases": {
+        "0.2.1-rc.5": "compatible"
+      }
+    }
+  },
   "files": [
     "index.js",
+    "cordis.patch.yml",
     "tools/",
     "README.md",
     "install.sh",

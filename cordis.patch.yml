@@ -1,0 +1,16 @@
+# Inserts the world-channel-bridge row.
+#
+# It periodically scans sessions whose cwd lives in a world room (`worlds/<name>/room`) but that are
+# not registered in that room's workspace, and attaches them via the host's public
+# `workspaceRegistry.attachSession()`. Once attached, dsh-world's archive hook takes over and the
+# channel's messages (official QQ bot, WeChat, …) land in the memory archive.
+#
+# Override the row by id in a profile to tune it:
+#
+#   - id: world-channel-bridge
+#     config:
+#       intervalMs: 30000
+#       worlds: ['default']
+- insert:
+    - id: world-channel-bridge
+      name: world-channel-bridge
