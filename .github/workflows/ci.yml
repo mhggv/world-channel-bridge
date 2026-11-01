@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: 语法与自测
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 语法检查
+        run: node --check index.js
+
+      - name: 无宿主自测（10 项断言）
+        run: node tools/self-test.mjs
+
+      - name: Shell 脚本语法
+        run: |
+          bash -n install.sh
+          bash -n uninstall.sh
+          bash -n doctor.sh
+
+      - name: 插件元数据自检
+        run: |
+          node -e "const p=require('./package.json'); if(!p.name||!p.version) process.exit(1); console.log(p.name, p.version, p.license)"

@@ -1,0 +1,46 @@
+{
+  "name": "world-channel-bridge",
+  "version": "1.0.0",
+  "description": "把官方 QQ 等外部渠道的会话登记进 DSH 世界房间工作区，使其对话进入 dsh-world 的记忆归档。零依赖、零硬编码，可跨机器复用。",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-world",
+    "cordis",
+    "cordis-plugin",
+    "qqbot",
+    "memory",
+    "archive"
+  ],
+  "license": "MIT",
+  "author": "mhggv",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mhggv/world-channel-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mhggv/world-channel-bridge/issues"
+  },
+  "homepage": "https://github.com/mhggv/world-channel-bridge#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "index.js",
+    "tools/",
+    "README.md",
+    "install.sh",
+    "uninstall.sh",
+    "doctor.sh",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check index.js",
+    "test": "node tools/self-test.mjs"
+  }
+}
